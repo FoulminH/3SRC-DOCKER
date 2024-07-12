@@ -1,0 +1,15 @@
+# Using dockerhub's image : alpine 3.20 with preinstalled glibc (106MB)
+FROM debian:12 AS base
+WORKDIR /usr/src
+RUN apt update && apt install golang-go ca-certificates wget -y && \
+    wget https://github.com/hashicorp/terraform/archive/refs/tags/v1.5.7.tar.gz -P /usr/src && \
+    tar -xzvf v1.5.7.tar.gz -C /usr/src
+WORKDIR /usr/src/terraform-1.5.7
+RUN go generate . && go build
+
+FROM frolvlad/alpine-glibc:glibc-2.34 as final
+#ici on utilise une image alpine avec glibc déja installée.
+#On a également un autre version avec une image alpine sur laquelle on installe glibc à la main. (elle est plus lourde :(. 111MB vs 106MB )
+COPY --from=base /usr/src/terraform-1.5.7/terraform /bin/
+ENTRYPOINT ["/bin/terraform"]
+CMD ["-help"]
